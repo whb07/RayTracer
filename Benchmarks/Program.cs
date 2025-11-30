@@ -19,13 +19,13 @@ namespace Benchmarks
         private RayTracer.Hittable[] emptyWorld;
         private RayTracer.Camera cam;
 
-        [Params(50, 400)]
+        [Params(250)]
         public int Width;
 
-        [Params(16, 100)]
+        [Params(100)]
         public int Spp;
 
-        [Params(10, 50)]
+        [Params(50)]
         public int MaxDepth;
 
         [GlobalSetup]
