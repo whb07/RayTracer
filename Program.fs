@@ -84,16 +84,16 @@ type MaterialType =
     | Dielectric of ir: float
 
 [<Struct>]
-type HitRecord =
+type Intersection =
     val P : Vec3
     val Normal : Vec3
     val Mat : MaterialType
     val T : float
     val FrontFace : bool
-    new (p, normal, mat, t, frontFace) = 
+    new (p, normal, mat, t, frontFace) =
         { P = p; Normal = normal; Mat = mat; T = t; FrontFace = frontFace }
 
-module HitRecord =
+module Intersection =
     let inline setFaceNormal (r: Ray) (outwardNormal: Vec3) =
         let frontFace = Vec3.dot r.Direction outwardNormal < 0.0
         let normal = if frontFace then outwardNormal else -1.0 * outwardNormal
@@ -113,7 +113,7 @@ type Hittable =
     | List of Hittable array
 
 module Hittable = 
-    let inline hitSphere (center: Vec3) (radius: float) (mat: MaterialType) (r: Ray) (tMin: float) (tMax: float) : HitRecord option =
+    let inline hitSphere (center: Vec3) (radius: float) (mat: MaterialType) (r: Ray) (tMin: float) (tMax: float) : Intersection option =
         let oc = r.Origin - center
         let a = Vec3.dot r.Direction r.Direction
         let halfB = Vec3.dot oc r.Direction
@@ -137,11 +137,11 @@ module Hittable =
             | Some root ->
                 let p = r.At(root)
                 let outwardNormal = (p - center) / radius
-                let frontFace, normal = HitRecord.setFaceNormal r outwardNormal
-                Some (HitRecord(p, normal, mat, root, frontFace))
+                let frontFace, normal = Intersection.setFaceNormal r outwardNormal
+                Some (Intersection(p, normal, mat, root, frontFace))
 
-    let hit (world: Hittable array) (r: Ray) (tMin: float) (tMax: float) : HitRecord option =
-        let mutable hitAnything : HitRecord option = None
+    let hit (world: Hittable array) (r: Ray) (tMin: float) (tMax: float) : Intersection option =
+        let mutable hitAnything : Intersection option = None
         let mutable closestSoFar = tMax
         
         // Iterative loop is often faster than Seq/List recursion for this hot path
