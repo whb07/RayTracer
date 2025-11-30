@@ -5,6 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsTrimmable>true</IsTrimmable>
     <PublishTrimmed>true</PublishTrimmed>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

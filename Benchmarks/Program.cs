@@ -5,22 +5,24 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using System.IO;
 using Tracer;
+using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Engines;
 
 namespace Benchmarks
 {
-    [ThreadingDiagnoser]
     [MemoryDiagnoser]
-    [RankColumn]
+    [SimpleJob(RunStrategy.ColdStart, RuntimeMoniker.NativeAot10_0)]
+    [SimpleJob(RunStrategy.ColdStart, RuntimeMoniker.Net10_0, baseline: true)]
     public class RayTracerBenchmarks
     {
         private RayTracer.Hittable[] world;
         private RayTracer.Hittable[] emptyWorld;
         private RayTracer.Camera cam;
 
-        [Params(50, 200, 400)]
+        [Params(50, 400)]
         public int Width;
 
-        [Params(1, 4, 16, 100)]
+        [Params(16, 100)]
         public int Spp;
 
         [Params(10, 50)]
@@ -49,42 +51,45 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void RayIntersection()
+        public bool RayIntersection()
         {
             var ray = new RayTracer.Ray(RayTracer.Vec3.Zero, new RayTracer.Vec3(0.0, 0.0, 1.0));
-            RayTracer.HittableModule.hit(world, ray, 0.0, double.PositiveInfinity);
+            var hitOpt = RayTracer.HittableModule.hit(world, ray, 0.0, double.PositiveInfinity);
+            return hitOpt != null;
         }
 
         [Benchmark]
         public RayTracer.Ray CameraRayGeneration() => cam.GetRay(0.5, 0.5);
 
         [Benchmark]
-        public void SmallRender_10x10_1sample()
+        public int SmallRender_10x10_1sample()
         {
-            RenderImage(10, 10, 1, world, 10);
+            return RenderImage(10, 10, 1, world, 10);
         }
 
         [Benchmark]
-        public void MediumRender_50x50_4samples()
+        public int MediumRender_50x50_4samples()
         {
-            RenderImage(50, 50, 4, world, 10);
+            return RenderImage(50, 50, 4, world, 10);
         }
 
         [Benchmark]
-        public void RealisticRandomSceneRender()
+        public int RealisticRandomSceneRender()
         {
             int height = (int)(Width * 9.0 / 16.0);
-            RenderImage(Width, height, Spp, world, MaxDepth);
+            if (height == 0) height = 1;
+            return RenderImage(Width, height, Spp, world, MaxDepth);
         }
 
         [Benchmark]
-        public void GradientRender()
+        public int GradientRender()
         {
             int height = (int)(Width * 9.0 / 16.0);
-            RenderImage(Width, height, Spp, emptyWorld, MaxDepth);
+            if (height == 0) height = 1;
+            return RenderImage(Width, height, Spp, emptyWorld, MaxDepth);
         }
 
-        private void RenderImage(int width, int height, int samples, RayTracer.Hittable[] hittables, int depth)
+        private int RenderImage(int width, int height, int samples, RayTracer.Hittable[] hittables, int depth)
         {
             var cam = new RayTracer.Camera(
                 new RayTracer.Vec3(13.0, 2.0, 3.0),
@@ -110,6 +115,17 @@ namespace Benchmarks
                     pixels[j * width + i] = color / samples;
                 }
             }
+
+            int checksum = 0;
+            for (int k = 0; k < pixels.Length; k++)
+            {
+                var p = pixels[k];
+                int r = (int)(256.0 * Math.Clamp(p.X, 0.0, 0.999));
+                int g = (int)(256.0 * Math.Clamp(p.Y, 0.0, 0.999));
+                int b = (int)(256.0 * Math.Clamp(p.Z, 0.0, 0.999));
+                checksum ^= (r << 16) | (g << 8) | b;
+            }
+            return checksum;
         }
     }
 
