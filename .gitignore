@@ -3,6 +3,10 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# droid
+.factory
+
+
 # dotenv files
 .env
 
